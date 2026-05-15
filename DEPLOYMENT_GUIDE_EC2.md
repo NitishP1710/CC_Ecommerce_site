@@ -128,15 +128,52 @@ sudo cp -r dist/* /var/www/ecommerce-frontend/
 
 ## 8) Configure Nginx Reverse Proxy
 
-Copy prepared config:
+Create Nginx config:
 
 ```bash
-sudo cp /home/ubuntu/ecommerce/nginx-ecommerce.conf /etc/nginx/sites-available/ecommerce
+sudo tee /etc/nginx/sites-available/ecommerce > /dev/null << 'EOF'
+server {
+  listen 80;
+  server_name _;
+
+  root /var/www/ecommerce-frontend;
+  index index.html;
+
+  location / {
+    try_files $uri /index.html;
+  }
+
+  location /api {
+    proxy_pass http://127.0.0.1:4000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location /api/health {
+    proxy_pass http://127.0.0.1:4000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+EOF
+
 sudo ln -s /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/ecommerce
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl restart nginx
 sudo systemctl enable nginx
+```
+
+```bash
+sudo chmod o+x /home/ubuntu
+sudo chmod -R 755 /home/ubuntu/ecommerce
+sudo systemctl restart nginx
 ```
 
 Now test in browser:
